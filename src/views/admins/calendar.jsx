@@ -319,7 +319,7 @@ export default function Calendar() {
 								.filter((c) => calendarForm.getValues(c))
 								.includes(event.groupId)
 						)}
-						// eventSources={[{ url: 'http://localhost:9000/calendar.ics', format: 'ics', color: 'crayan' }]}
+						eventSources={[{ url: 'http://localhost:9000/calendar.ics', format: 'ics', color: 'crayan' }]}
 						eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: true }}
 					/>
 				</Box>
