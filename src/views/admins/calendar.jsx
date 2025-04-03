@@ -3,12 +3,16 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import iCalendarPlugin from '@fullcalendar/icalendar';
 
-import { Accordion, Avatar, Box, Button, Checkbox, Dialog, Image, Field, Fieldset, Flex, HStack, Input, RadioGroup, Text, Textarea, VStack, chakra, createListCollection, useDisclosure } from '@chakra-ui/react';
+import { Accordion, Avatar, Box, Button, Checkbox, Dialog, Image, Field, Fieldset, Flex, HStack, Input, RadioGroup, Text, Textarea, VStack, chakra, createListCollection, useDisclosure, InputGroup, NumberInput } from '@chakra-ui/react';
 import { useForm, Controller } from 'react-hook-form';
+import { IoMdAdd, IoMdShare } from 'react-icons/io';
+import { IoTimeOutline } from 'react-icons/io5';
 import moment from 'moment/moment';
 
 import ReactDatePicker from '../../components/custom/ReactDatePicker';
 import CustomSelect from '../../components/custom/CustomSelect';
+
+import { Tooltip } from '../../components/ui/tooltip';
 
 const events = [
 	{ groupId: 'private', title: 'Testing private', start: new Date(), end: new Date(), allDay: true, color: '#CB3A32' },
@@ -21,11 +25,14 @@ const events = [
 
 export default function Calendar() {
 	const toggleEventForm = useDisclosure();
+	const toggleNewGroupForm = useDisclosure();
+
+	// const [dummyEvents, setDummyEvent] = React.useState([]);
 
 	const eventGroupOptions = createListCollection({
 		items: [
-			{ value: 'private', label: 'Private', colorCode: 'red', checked: true },
-			{ value: 'holiday', label: 'Holiday', colorCode: 'yellow', checked: true },
+			{ value: 'private', label: 'Private', color: 'red', colorCode: '#CB3A32', checked: true },
+			{ value: 'holiday', label: 'Holiday', color: 'yellow', colorCode: '#F9E065', checked: true },
 		],
 	});
 
@@ -54,8 +61,8 @@ export default function Calendar() {
 			location: '',
 			description: '',
 			eventGroupOption: [eventGroupOptions.at(0).value],
-			startDate: new Date(moment()),
-			endDate: new Date(moment().add(1, 'day')),
+			start: new Date(moment()),
+			end: new Date(moment().add(1, 'day')),
 			startTime: new Date(moment()),
 			endTime: new Date(moment().add(30, 'minutes')),
 			allDay: false,
@@ -69,6 +76,8 @@ export default function Calendar() {
 		},
 	});
 
+	const groupForm = useForm({});
+
 	const calendarForm = useForm({
 		defaultValues: {
 			...eventGroupOptions.items.reduce((acc, item) => {
@@ -79,10 +88,24 @@ export default function Calendar() {
 	});
 
 	useEffect(() => {
-		eventForm.setValue('repeatOnDay', [moment(eventForm.getValues('startDate')).format('ddd').toUpperCase().substring(0, 2)]);
-	}, [eventForm, eventForm.watch('startDate')]);
+		eventForm.setValue('repeatOnDay', [moment(eventForm.getValues('start')).format('ddd').toUpperCase().substring(0, 2)]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [eventForm, eventForm.watch('start')]);
 
 	const handleSubmitEvent = (data) => {
+		console.log(data);
+		// let tempDummy = dummyEvents;
+		// console.log(data);
+		// let newEvent = {
+		// 	groupId: data.eventGroupOption[0],
+		// 	title: data.title,
+		// };
+
+		// tempDummy.push(newEvent);
+		// setDummyEvent([...tempDummy]);
+	};
+
+	const handleSubmitGroup = (data) => {
 		console.log(data);
 	};
 
@@ -101,12 +124,12 @@ export default function Calendar() {
 					size='md'
 					mb={5}
 					w='100%'
-					color='#5A9EF8'
-					bgColor='#BADEFC'
+					color='secondary'
+					bgColor='primary'
 				>
 					Create Event
 				</Button>
-				<Dialog.Root open={toggleEventForm.open} onEscapeKeyDown={toggleEventForm.onToggle} onInteractOutside={toggleEventForm.onToggle} size='xl' placement='center'>
+				<Dialog.Root open={toggleEventForm.open} onEscapeKeyDown={toggleEventForm.onToggle} onInteractOutside={toggleEventForm.onToggle} size='xl' placement='top'>
 					<Dialog.Backdrop />
 					<Dialog.Positioner>
 						<Dialog.Content>
@@ -120,9 +143,10 @@ export default function Calendar() {
 										<Fieldset.Content>
 											<Flex w='100%' flexDirection='row' gapX={5}>
 												<Flex w='43%' flexDirection='column' gapY={2}>
-													<Field.Root>
+													<Field.Root invalid={eventForm.formState.errors.title}>
 														<Field.Label>Event Title</Field.Label>
-														<Input placeholder='Title' {...eventForm.register('title')} />
+														<Input placeholder='Title' {...eventForm.register('title', { required: 'Event title is required.' })} />
+														<Field.ErrorText>{eventForm.formState.errors.title?.message}</Field.ErrorText>
 													</Field.Root>
 													<Field.Root>
 														<Field.Label>Location</Field.Label>
@@ -142,15 +166,15 @@ export default function Calendar() {
 													<Flex alignItems='flex-start' gapX='2'>
 														<Field.Root w='fit-content'>
 															<Field.Label>Start Date</Field.Label>
-															<Controller control={eventForm.control} name='startDate' render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' selected={field.value} onChange={field.onChange} withPortal />} />
+															<Controller control={eventForm.control} name='start' render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' selected={field.value} onChange={field.onChange} withPortal />} />
 														</Field.Root>
 														{eventForm.watch('allDay') ? (
 															<Field.Root w='fit-content'>
 																<Field.Label>End Date</Field.Label>
 																<Controller
 																	control={eventForm.control}
-																	name='endDate'
-																	render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' minDate={new Date(moment(eventForm.watch('startDate')).add(1, 'day'))} selected={field.value} onChange={field.onChange} withPortal />}
+																	name='end'
+																	render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' minDate={new Date(moment(eventForm.watch('start')).add(1, 'day'))} selected={field.value} onChange={field.onChange} withPortal />}
 																/>
 															</Field.Root>
 														) : (
@@ -259,7 +283,20 @@ export default function Calendar() {
 																/>
 															</Field.Root>
 															{eventForm.watch('repeatEndOption') === 'On' && <Controller control={eventForm.control} name={'On'} render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' selected={field.value} onChange={field.onChange} withPortal />} />}
-															{eventForm.watch('repeatEndOption') === 'After' && <Input type='number' {...eventForm.register('After', { valueAsNumber: true })} />}
+															{eventForm.watch('repeatEndOption') === 'After' && (
+																<Controller
+																	control={eventForm.control}
+																	name={'After'}
+																	render={({ field }) => (
+																		<NumberInput.Root min={1} name={field.name} value={field.value} onValueChange={({ value }) => field.onChange(value)}>
+																			<NumberInput.Control />
+																			<InputGroup startElement={<IoTimeOutline size={20} />}>
+																				<NumberInput.Input />
+																			</InputGroup>
+																		</NumberInput.Root>
+																	)}
+																/>
+															)}
 														</Flex>
 													)}
 												</Flex>
@@ -281,21 +318,63 @@ export default function Calendar() {
 				</Dialog.Root>
 				<Accordion.Root multiple defaultValue={['myCalendar']}>
 					<Accordion.Item value='myCalendar'>
-						<Accordion.ItemTrigger justifyContent='space-between'>
-							My Calendars
-							<Accordion.ItemIndicator />
-						</Accordion.ItemTrigger>
+						<Flex alignItems='center' gapX={2}>
+							<Accordion.ItemTrigger justifyContent='space-between'>
+								My Calendars
+								<Accordion.ItemIndicator />
+							</Accordion.ItemTrigger>
+							<Tooltip content='New group'>
+								<IoMdAdd size={23} onClick={toggleNewGroupForm.onToggle} color='gray' />
+							</Tooltip>
+							<Dialog.Root open={toggleNewGroupForm.open} onEscapeKeyDown={toggleNewGroupForm.onToggle} onInteractOutside={toggleNewGroupForm.onToggle} size='md' placement='top'>
+								<Dialog.Backdrop />
+								<Dialog.Positioner>
+									<Dialog.Content>
+										<Dialog.Trigger />
+										<Dialog.Header>
+											<Dialog.Title>New Group</Dialog.Title>
+										</Dialog.Header>
+										<chakra.form w='100%' onSubmit={groupForm.handleSubmit(handleSubmitGroup)}>
+											<Fieldset.Root>
+												<Dialog.Body>
+													<Fieldset.Content>
+														<Field.Root invalid={groupForm.formState.errors.name}>
+															<Field.Label>Group Name</Field.Label>
+															<Input placeholder='Group name' {...groupForm.register('name', { required: 'Group name is required' })} />
+															<Field.ErrorText>{groupForm.formState.errors.name?.message}</Field.ErrorText>
+														</Field.Root>
+													</Fieldset.Content>
+												</Dialog.Body>
+												<Dialog.Footer>
+													<Button onClick={toggleNewGroupForm.onToggle} rounded='md' variant='subtle' colorPalette='gray'>
+														Close
+													</Button>
+													<Button type='submit' rounded='md' variant='subtle' color='#5A9EF8' bgColor='#BADEFC'>
+														Save
+													</Button>
+												</Dialog.Footer>
+											</Fieldset.Root>
+										</chakra.form>
+									</Dialog.Content>
+								</Dialog.Positioner>
+							</Dialog.Root>
+						</Flex>
 						{eventGroupOptions.items.map((item, calIndex) => (
 							<Accordion.ItemContent key={calIndex}>
 								<Controller
 									control={calendarForm.control}
 									name={item.value}
 									render={({ field }) => (
-										<Checkbox.Root my={1} onCheckedChange={(e) => field.onChange(e.checked)} checked={field.value} variant='solid' colorPalette={item.colorCode}>
-											<Checkbox.HiddenInput />
-											<Checkbox.Control />
-											<Checkbox.Label>{item.label}</Checkbox.Label>
-										</Checkbox.Root>
+										<Flex alignItems='center' justifyContent='space-between'>
+											<Checkbox.Root my={1} onCheckedChange={(e) => field.onChange(e.checked)} checked={field.value} variant='solid' colorPalette={item.color}>
+												<Checkbox.HiddenInput />
+												<Checkbox.Control />
+												<Checkbox.Label>{item.label}</Checkbox.Label>
+											</Checkbox.Root>
+											<Tooltip content='Share group'>
+												<IoMdShare color='gray' />
+											</Tooltip>
+										</Flex>
 									)}
 								/>
 							</Accordion.ItemContent>
@@ -319,7 +398,7 @@ export default function Calendar() {
 								.filter((c) => calendarForm.getValues(c))
 								.includes(event.groupId)
 						)}
-						eventSources={[{ url: 'http://localhost:9000/calendar.ics', format: 'ics', color: 'crayan' }]}
+						// eventSources={[{ url: 'http://localhost:9000/calendar.ics', format: 'ics', color: 'crayan' }]}
 						eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: true }}
 					/>
 				</Box>
