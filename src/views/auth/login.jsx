@@ -3,17 +3,15 @@ import { Fieldset, Stack, Field, Input, Button, Center, chakra, Image } from '@c
 
 import { PasswordInput } from '../../components/ui/password-input';
 import { useForm } from 'react-hook-form';
+import { useAuth } from '../../utils/hooks/auth';
 
 export default function Login() {
-	const loginForm = useForm({});
-
-	const handleLoginSubmit = (data) => {
-		console.log(data);
-	};
+	const { login, loginStatus } = useAuth();
+	const loginForm = useForm({ defaultValues: { username: 'rithiro', password: '123456' } });
 
 	return (
 		<Center mx='3' px='10' w='lg' h='md' bg='white' borderRadius='md' shadow='md'>
-			<chakra.form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} w='100%'>
+			<chakra.form onSubmit={loginForm.handleSubmit(login)} w='100%'>
 				<Fieldset.Root alignItems='center'>
 					<Image h='60px' src='/logo.png' />
 					<Stack mb='7'>
@@ -30,11 +28,14 @@ export default function Login() {
 						</Field.Root>
 						<Field.Root invalid={loginForm.formState.errors.password}>
 							<Field.Label>Password</Field.Label>
-							<PasswordInput placeholder='password' {...loginForm.register('password', { required: 'Password is required.', minLength: { value: 4, message: 'Password must be at least 4 characters.' } })} />
+							<PasswordInput
+								placeholder='password'
+								{...loginForm.register('password', { required: 'Password is required.', minLength: { value: 4, message: 'Password must be at least 4 characters.' } })}
+							/>
 							<Field.ErrorText>{loginForm.formState.errors.password?.message}</Field.ErrorText>
 						</Field.Root>
 					</Fieldset.Content>
-					<Button w='100%' type='submit'>
+					<Button loading={loginStatus === 'pending'} loadingText='Loading...' w='100%' type='submit'>
 						Login
 					</Button>
 				</Fieldset.Root>

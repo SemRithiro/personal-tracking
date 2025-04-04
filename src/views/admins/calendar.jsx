@@ -3,7 +3,29 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import iCalendarPlugin from '@fullcalendar/icalendar';
 
-import { Accordion, Avatar, Box, Button, Checkbox, Dialog, Image, Field, Fieldset, Flex, HStack, Input, RadioGroup, Text, Textarea, VStack, chakra, createListCollection, useDisclosure, InputGroup, NumberInput } from '@chakra-ui/react';
+import {
+	Accordion,
+	Avatar,
+	Box,
+	Button,
+	Checkbox,
+	Dialog,
+	Image,
+	Field,
+	Fieldset,
+	Flex,
+	HStack,
+	Input,
+	RadioGroup,
+	Text,
+	Textarea,
+	VStack,
+	chakra,
+	createListCollection,
+	useDisclosure,
+	InputGroup,
+	NumberInput,
+} from '@chakra-ui/react';
 import { useForm, Controller } from 'react-hook-form';
 import { IoMdAdd, IoMdShare } from 'react-icons/io';
 import { IoTimeOutline } from 'react-icons/io5';
@@ -13,6 +35,7 @@ import ReactDatePicker from '../../components/custom/ReactDatePicker';
 import CustomSelect from '../../components/custom/CustomSelect';
 
 import { Tooltip } from '../../components/ui/tooltip';
+import { useSubscribedEvent } from '../../utils/hooks/event';
 
 const events = [
 	{ groupId: 'private', title: 'Testing private', start: new Date(), end: new Date(), allDay: true, color: '#CB3A32' },
@@ -27,16 +50,16 @@ export default function Calendar() {
 	const toggleEventForm = useDisclosure();
 	const toggleNewGroupForm = useDisclosure();
 
-	// const [dummyEvents, setDummyEvent] = React.useState([]);
+	const subscribeEvents = useSubscribedEvent();
 
 	const eventGroupOptions = createListCollection({
 		items: [
-			{ value: 'private', label: 'Private', color: 'red', colorCode: '#CB3A32', checked: true },
+			{ value: 'private', label: 'Private', color: 'blue', colorCode: '#CB3A32', checked: true },
 			{ value: 'holiday', label: 'Holiday', color: 'yellow', colorCode: '#F9E065', checked: true },
 		],
 	});
 
-	const repeatOptions = createListCollection({
+	const frequencyOptions = createListCollection({
 		items: [
 			{ value: 'daily', label: 'Daily' },
 			{ value: 'weekly', label: 'Weekly' },
@@ -46,7 +69,7 @@ export default function Calendar() {
 		],
 	});
 
-	const repeatIntervalOptions = createListCollection({
+	const intervalOptions = createListCollection({
 		items: [
 			{ value: 'daily', label: 'Daily' },
 			{ value: 'weekly', label: 'Weekly' },
@@ -60,16 +83,17 @@ export default function Calendar() {
 			title: '',
 			location: '',
 			description: '',
+			url: '',
 			eventGroupOption: [eventGroupOptions.at(0).value],
 			start: new Date(moment()),
 			end: new Date(moment().add(1, 'day')),
 			startTime: new Date(moment()),
 			endTime: new Date(moment().add(30, 'minutes')),
 			allDay: false,
-			repeatOption: [],
+			frequencyOption: [],
 			repeatInterval: 1,
-			repeatIntervalOption: ['weekly'],
-			repeatOnDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
+			intervalOption: ['weekly'],
+			repeatByDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
 			repeatEndOption: 'Never',
 			On: new Date(moment()),
 			After: 1,
@@ -88,21 +112,12 @@ export default function Calendar() {
 	});
 
 	useEffect(() => {
-		eventForm.setValue('repeatOnDay', [moment(eventForm.getValues('start')).format('ddd').toUpperCase().substring(0, 2)]);
+		eventForm.setValue('repeatByDay', [moment(eventForm.getValues('start')).format('ddd').toUpperCase().substring(0, 2)]);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [eventForm, eventForm.watch('start')]);
 
 	const handleSubmitEvent = (data) => {
 		console.log(data);
-		// let tempDummy = dummyEvents;
-		// console.log(data);
-		// let newEvent = {
-		// 	groupId: data.eventGroupOption[0],
-		// 	title: data.title,
-		// };
-
-		// tempDummy.push(newEvent);
-		// setDummyEvent([...tempDummy]);
 	};
 
 	const handleSubmitGroup = (data) => {
@@ -122,6 +137,7 @@ export default function Calendar() {
 						toggleEventForm.onToggle();
 					}}
 					size='md'
+					shadow='md'
 					mb={5}
 					w='100%'
 					color='secondary'
@@ -156,7 +172,11 @@ export default function Calendar() {
 														<Field.Label>URL</Field.Label>
 														<Input placeholder='URL' {...eventForm.register('url')} />
 													</Field.Root>
-													<Controller name='eventGroupOption' control={eventForm.control} render={({ field }) => <CustomSelect label='Event Group' placeholder='Event Group' options={eventGroupOptions} field={field} />} />
+													<Controller
+														name='eventGroupOption'
+														control={eventForm.control}
+														render={({ field }) => <CustomSelect label='Event Group' placeholder='Event Group' options={eventGroupOptions} field={field} />}
+													/>
 													<Field.Root>
 														<Field.Label>Description</Field.Label>
 														<Textarea rows={4} placeholder='Description' {...eventForm.register('description')} />
@@ -166,7 +186,11 @@ export default function Calendar() {
 													<Flex alignItems='flex-start' gapX='2'>
 														<Field.Root w='fit-content'>
 															<Field.Label>Start Date</Field.Label>
-															<Controller control={eventForm.control} name='start' render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' selected={field.value} onChange={field.onChange} withPortal />} />
+															<Controller
+																control={eventForm.control}
+																name='start'
+																render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' selected={field.value} onChange={field.onChange} withPortal />}
+															/>
 														</Field.Root>
 														{eventForm.watch('allDay') ? (
 															<Field.Root w='fit-content'>
@@ -174,7 +198,15 @@ export default function Calendar() {
 																<Controller
 																	control={eventForm.control}
 																	name='end'
-																	render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' minDate={new Date(moment(eventForm.watch('start')).add(1, 'day'))} selected={field.value} onChange={field.onChange} withPortal />}
+																	render={({ field }) => (
+																		<ReactDatePicker
+																			dateFormat='MMMM d, yyyy'
+																			minDate={new Date(moment(eventForm.watch('start')).add(1, 'day'))}
+																			selected={field.value}
+																			onChange={field.onChange}
+																			withPortal
+																		/>
+																	)}
 																/>
 															</Field.Root>
 														) : (
@@ -184,7 +216,18 @@ export default function Calendar() {
 																	<Controller
 																		control={eventForm.control}
 																		name='startTime'
-																		render={({ field }) => <ReactDatePicker dateFormat='h:mm aa' selected={field.value} onChange={field.onChange} showTimeSelectOnly showTimeSelect showTimeCaption={false} timeIntervals={5} withPortal />}
+																		render={({ field }) => (
+																			<ReactDatePicker
+																				dateFormat='h:mm aa'
+																				selected={field.value}
+																				onChange={field.onChange}
+																				showTimeSelectOnly
+																				showTimeSelect
+																				showTimeCaption={false}
+																				timeIntervals={5}
+																				withPortal
+																			/>
+																		)}
 																	/>
 																</Field.Root>
 																<Field.Root w='fit-content'>
@@ -192,7 +235,18 @@ export default function Calendar() {
 																	<Controller
 																		control={eventForm.control}
 																		name='endTime'
-																		render={({ field }) => <ReactDatePicker dateFormat='h:mm aa' selected={field.value} onChange={field.onChange} showTimeSelectOnly showTimeSelect showTimeCaption={false} timeIntervals={5} withPortal />}
+																		render={({ field }) => (
+																			<ReactDatePicker
+																				dateFormat='h:mm aa'
+																				selected={field.value}
+																				onChange={field.onChange}
+																				showTimeSelectOnly
+																				showTimeSelect
+																				showTimeCaption={false}
+																				timeIntervals={5}
+																				withPortal
+																			/>
+																		)}
 																	/>
 																</Field.Root>
 															</>
@@ -210,22 +264,30 @@ export default function Calendar() {
 																</Checkbox.Root>
 															)}
 														/>
-														<Controller name='repeatOption' control={eventForm.control} render={({ field }) => <CustomSelect placeholder='Do not repeat' clearable options={repeatOptions} field={field} />} />
+														<Controller
+															name='frequencyOption'
+															control={eventForm.control}
+															render={({ field }) => <CustomSelect placeholder='Do not repeat' clearable options={frequencyOptions} field={field} />}
+														/>
 													</HStack>
-													{eventForm.watch('repeatOption').includes('custom') && (
+													{eventForm.watch('frequencyOption').includes('custom') && (
 														<VStack w='100%'>
 															<HStack w='100%' alignItems='flex-start'>
 																<Field.Root flexDirection='row' alignItems='center'>
 																	<Field.Label>Every</Field.Label>
 																	<Input min={1} step={1} type='number' {...eventForm.register('repeatInterval', { valueAsNumber: true })} />
 																</Field.Root>
-																<Controller name='repeatIntervalOption' control={eventForm.control} render={({ field }) => <CustomSelect options={repeatIntervalOptions} field={field} />} />
+																<Controller
+																	name='intervalOption'
+																	control={eventForm.control}
+																	render={({ field }) => <CustomSelect options={intervalOptions} field={field} />}
+																/>
 															</HStack>
-															{eventForm.watch('repeatIntervalOption').includes('weekly') && !eventForm.watch('allDay') && (
+															{eventForm.watch('intervalOption').includes('weekly') && !eventForm.watch('allDay') && (
 																<Field.Root>
 																	<Field.Label>Repeat on</Field.Label>
 																	<Controller
-																		name='repeatOnDay'
+																		name='repeatByDay'
 																		control={eventForm.control}
 																		render={({ field }) => (
 																			<HStack mt={1}>
@@ -253,7 +315,7 @@ export default function Calendar() {
 															)}
 														</VStack>
 													)}
-													{eventForm.watch('repeatOption').length > 0 && (
+													{eventForm.watch('frequencyOption').length > 0 && (
 														<Flex w='100%' flexDirection='column' gapY={2}>
 															<Field.Root>
 																<Field.Label>Ends</Field.Label>
@@ -282,7 +344,13 @@ export default function Calendar() {
 																	)}
 																/>
 															</Field.Root>
-															{eventForm.watch('repeatEndOption') === 'On' && <Controller control={eventForm.control} name={'On'} render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' selected={field.value} onChange={field.onChange} withPortal />} />}
+															{eventForm.watch('repeatEndOption') === 'On' && (
+																<Controller
+																	control={eventForm.control}
+																	name={'On'}
+																	render={({ field }) => <ReactDatePicker dateFormat='MMMM d, yyyy' selected={field.value} onChange={field.onChange} withPortal />}
+																/>
+															)}
 															{eventForm.watch('repeatEndOption') === 'After' && (
 																<Controller
 																	control={eventForm.control}
@@ -321,10 +389,10 @@ export default function Calendar() {
 						<Flex alignItems='center' gapX={2}>
 							<Accordion.ItemTrigger justifyContent='space-between'>
 								My Calendars
-								<Accordion.ItemIndicator />
+								<Accordion.ItemIndicator cursor='pointer' />
 							</Accordion.ItemTrigger>
 							<Tooltip content='New group'>
-								<IoMdAdd size={23} onClick={toggleNewGroupForm.onToggle} color='gray' />
+								<IoMdAdd size={23} cursor='pointer' onClick={toggleNewGroupForm.onToggle} color='gray' />
 							</Tooltip>
 							<Dialog.Root open={toggleNewGroupForm.open} onEscapeKeyDown={toggleNewGroupForm.onToggle} onInteractOutside={toggleNewGroupForm.onToggle} size='md' placement='top'>
 								<Dialog.Backdrop />
@@ -366,13 +434,13 @@ export default function Calendar() {
 									name={item.value}
 									render={({ field }) => (
 										<Flex alignItems='center' justifyContent='space-between'>
-											<Checkbox.Root my={1} onCheckedChange={(e) => field.onChange(e.checked)} checked={field.value} variant='solid' colorPalette={item.color}>
+											<Checkbox.Root cursor='pointer' my={1} onCheckedChange={(e) => field.onChange(e.checked)} checked={field.value} variant='solid' colorPalette={item.color}>
 												<Checkbox.HiddenInput />
 												<Checkbox.Control />
 												<Checkbox.Label>{item.label}</Checkbox.Label>
 											</Checkbox.Root>
 											<Tooltip content='Share group'>
-												<IoMdShare color='gray' />
+												<IoMdShare cursor='pointer' color='gray' />
 											</Tooltip>
 										</Flex>
 									)}
@@ -384,23 +452,27 @@ export default function Calendar() {
 			</Box>
 			<Flex w='100%' flex={1}>
 				<Box my={7} mr={7} p={10} bg='white' shadow='lg' borderRadius='2xl' w='100%'>
-					<FullCalendar
-						height='100%'
-						buttonText={{ today: 'Today' }}
-						titleFormat={{ month: 'long', year: 'numeric' }}
-						headerToolbar={{ end: 'today prev,next' }}
-						dayMaxEvents={3}
-						eventDisplay='auto'
-						initialView='dayGridMonth'
-						plugins={[dayGridPlugin, iCalendarPlugin]}
-						events={events.filter((event) =>
-							Object.keys(calendarForm.watch())
-								.filter((c) => calendarForm.getValues(c))
-								.includes(event.groupId)
-						)}
-						// eventSources={[{ url: 'http://localhost:9000/calendar.ics', format: 'ics', color: 'crayan' }]}
-						eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: true }}
-					/>
+					{subscribeEvents.isSuccess && (
+						<FullCalendar
+							height='100%'
+							buttonText={{ today: 'Today' }}
+							titleFormat={{ month: 'long', year: 'numeric' }}
+							headerToolbar={{ end: 'today prev,next' }}
+							dayMaxEvents={3}
+							eventDisplay='auto'
+							initialView='dayGridMonth'
+							plugins={[dayGridPlugin, iCalendarPlugin]}
+							eventSources={[
+								events.filter((event) =>
+									Object.keys(calendarForm.watch())
+										.filter((c) => calendarForm.getValues(c))
+										.includes(event.groupId)
+								),
+								...subscribeEvents.data,
+							]}
+							eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: true }}
+						/>
+					)}
 				</Box>
 			</Flex>
 		</Flex>
