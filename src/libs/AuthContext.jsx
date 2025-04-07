@@ -29,7 +29,7 @@ export function AuthContext(config) {
 
 		const logoutMutation = useMutation({
 			mutationFn: logoutFn,
-			onSuccess: (response) => {
+			onSuccess: () => {
 				cookies.clear_cookies();
 			},
 		});

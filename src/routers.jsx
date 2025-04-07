@@ -15,7 +15,7 @@ export default function Router() {
 	return (
 		<BrowserRouter>
 			<Routes>
-				{user ? (
+				{!user ? (
 					<Route path='/' element={<AdminLayout />}>
 						<Route index element={<Calendar />} />
 

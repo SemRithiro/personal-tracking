@@ -9,9 +9,9 @@ export async function login({ username, password }) {
 		body: JSON.stringify({ username, password }),
 	})
 		.then(async (raw) => await raw.json())
-		.then((res) => res)
-		.catch((error) => {
-			throw new Error('Unexpected error: ' + error.message);
+		.then((res) => {
+			if (res['header']['statusCode'] >= 200 && res['header']['statusCode'] < 300) return res;
+			throw new Error(res['header']['errorText']);
 		});
 }
 
@@ -21,9 +21,9 @@ export async function logout() {
 		headers: auth_json_header(),
 	})
 		.then(async (raw) => await raw.json())
-		.then((res) => res)
-		.catch((error) => {
-			throw new Error('Unexpected error: ' + error.message);
+		.then((res) => {
+			if (res['header']['statusCode'] >= 200 && res['header']['statusCode'] < 300) return res;
+			throw new Error(res['header']['message']);
 		});
 }
 
@@ -34,9 +34,9 @@ export async function refreshToken() {
 		body: JSON.stringify({ refreshToken: cookies.get_refresh_token() }),
 	})
 		.then(async (raw) => await raw.json())
-		.then((res) => res)
-		.catch((error) => {
-			throw new Error('Unexpected error: ' + error.message);
+		.then((res) => {
+			if (res['header']['statusCode'] >= 200 && res['header']['statusCode'] < 300) return res;
+			throw new Error(res['header']['message']);
 		});
 }
 
@@ -49,9 +49,6 @@ export async function loadUser() {
 		.then((res) => {
 			if (res['header']['statusCode'] >= 200 && res['header']['statusCode'] < 300) return res;
 			throw new Error(res['header']['message']);
-		})
-		.catch((error) => {
-			return null;
 		});
 }
 

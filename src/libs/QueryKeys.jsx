@@ -2,3 +2,5 @@ export const AUTH_USER = 'AUTH_USER';
 export const AUTH_PERMISSION = 'AUTH_PERMISSION';
 
 export const EVENT_SUBSCRIBED = 'EVENT_SUBSCRIBED';
+
+export const EVENT_GROUP = 'EVENT_GROUP';

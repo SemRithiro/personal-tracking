@@ -1,10 +1,16 @@
 import React from 'react';
 
-import { Select } from '@chakra-ui/react';
+import { Select, createListCollection } from '@chakra-ui/react';
 
 export default function CustomSelect({ field, label, placeholder, options, clearable, children, ...props }) {
+	const [selectOptions, setSelectOptions] = React.useState(createListCollection({ items: [] }));
+
+	React.useEffect(() => {
+		setSelectOptions(createListCollection({ items: options }));
+	}, [options]);
+
 	return (
-		<Select.Root {...props} value={field.value} onValueChange={({ value }) => field.onChange(value)} onInteractOutside={() => field.onBlur()} collection={options}>
+		<Select.Root {...props} value={field.value ? field.value : field.id} onValueChange={({ value }) => field.onChange(value)} onInteractOutside={() => field.onBlur()} collection={selectOptions}>
 			<Select.HiddenSelect />
 			{label && <Select.Label>{label}</Select.Label>}
 			<Select.Control>
@@ -18,9 +24,9 @@ export default function CustomSelect({ field, label, placeholder, options, clear
 			</Select.Control>
 			<Select.Positioner>
 				<Select.Content>
-					{options.items.map((egp) => (
-						<Select.Item item={egp} key={egp.value}>
-							{egp.label}
+					{selectOptions.items.map((egp) => (
+						<Select.Item item={egp} key={egp.value ? egp.value : egp.id}>
+							{egp.label ? egp.label : egp.name}
 							<Select.ItemIndicator />
 						</Select.Item>
 					))}

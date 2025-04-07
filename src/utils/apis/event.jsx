@@ -1,7 +1,7 @@
 import { auth_json_header } from '../requestHeader';
 
 export async function getSubscribedEvent() {
-	return await fetch('http://localhost:8080/event/subscribed-events', {
+	return await fetch('http://localhost:8080/event/subscribed-eventssss', {
 		method: 'GET',
 		headers: auth_json_header(),
 	})
@@ -11,6 +11,6 @@ export async function getSubscribedEvent() {
 			throw new Error(res['header']['message']);
 		})
 		.catch((error) => {
-			return null;
+			throw new Error('Unexpected error: ' + error.message);
 		});
 }
