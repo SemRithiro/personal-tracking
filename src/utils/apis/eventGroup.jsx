@@ -1,7 +1,7 @@
 import { eventGroups } from '../../constants/dummy';
 import { auth_json_header } from '../requestHeader';
 
-export async function getList() {
+export async function getEventGroup() {
 	return eventGroups;
 	// return await fetch('http://localhost:8080/event-group/list', {
 	// 	method: 'GET',

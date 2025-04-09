@@ -62,6 +62,10 @@ export const isEmptyOrWhiteSpace = (...list) => {
 	return index === list.length;
 };
 
+export const range = (start, end) => {
+	return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+};
+
 export const formatDate = (date) => {
 	return moment(date).format('YYYY-MM-DD');
 };

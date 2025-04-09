@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import rrulePlugin from '@fullcalendar/rrule';
 import iCalendarPlugin from '@fullcalendar/icalendar';
 
 import {
@@ -36,37 +37,17 @@ import CustomSelect from '../../components/custom/CustomSelect';
 
 import { Tooltip } from '../../components/ui/tooltip';
 
-import { useGetList } from '../../utils/hooks/eventGroup';
+import { useGetEventList } from '../../utils/hooks/event';
+import { useGetEventGroupList } from '../../utils/hooks/eventGroup';
 
-const events = [
-	{ groupId: 1, title: 'Testing private', start: new Date(), end: new Date(), allDay: true, color: '#CB3A32' },
-	{ groupId: 2, title: 'Testing Holiday', start: new Date(), end: new Date(), color: '#F9E065' },
-	{ groupId: 1, title: 'Testing private', start: new Date(), end: new Date(), color: '#CB3A32' },
-	{ groupId: 1, title: 'Testing private', start: new Date(), end: new Date(), color: '#CB3A32' },
-	{ groupId: 2, title: 'Testing Holiday', start: new Date(), end: new Date(), color: '#F9E065' },
-	{ groupId: 2, title: 'Testing Holiday', start: new Date(), end: new Date(), color: '#F9E065' },
-];
+import { frequencyOptions, weekDayOptions, monthDayOptions, monthOptions, weekNumberOptions } from '../../constants/calendarOptions';
 
 export default function Calendar() {
 	const toggleEventForm = useDisclosure();
 	const toggleNewGroupForm = useDisclosure();
 
-	const eventGroupOptions = useGetList();
-
-	const frequencyOptions = [
-		{ value: 'daily', label: 'Daily' },
-		{ value: 'weekly', label: 'Weekly' },
-		{ value: 'monthly', label: 'Monthly' },
-		{ value: 'yearly', label: 'Yearly' },
-		{ value: 'custom', label: 'Custom' },
-	];
-
-	const intervalOptions = [
-		{ value: 'daily', label: 'Daily' },
-		{ value: 'weekly', label: 'Weekly' },
-		{ value: 'monthly', label: 'Monthly' },
-		{ value: 'yearly', label: 'Yearly' },
-	];
+	const events = useGetEventList();
+	const eventGroupOptions = useGetEventGroupList();
 
 	const eventForm = useForm({
 		defaultValues: {
@@ -80,10 +61,21 @@ export default function Calendar() {
 			startTime: new Date(moment()),
 			endTime: new Date(moment().add(30, 'minutes')),
 			allDay: false,
+
 			frequencyOption: [],
 			repeatInterval: 1,
-			intervalOption: ['weekly'],
-			repeatByDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
+
+			customFreqOption: ['weekly'],
+			repeatByWeekDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
+			repeatOption: 'each',
+
+			repeatByMonthWeekDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
+			weekNumberOption: [weekNumberOptions[0].value],
+			repeatByMonthDay: [parseInt(moment().format('D'))],
+
+			repeatByMonth: [parseInt(moment().format('M'))],
+			onThe: [true],
+
 			repeatEndOption: 'Never',
 			On: new Date(moment()),
 			After: 1,
@@ -105,11 +97,39 @@ export default function Calendar() {
 	}, [calendarForm, eventGroupOptions.data]);
 
 	useEffect(() => {
-		eventForm.setValue('repeatByDay', [moment(eventForm.getValues('start')).format('ddd').toUpperCase().substring(0, 2)]);
+		eventForm.setValue('repeatByWeekDay', [moment(eventForm.getValues('start')).format('ddd').toUpperCase().substring(0, 2)]);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [eventForm, eventForm.watch('start')]);
 
 	const handleSubmitEvent = (data) => {
+		let event = {
+			title: data.title,
+			description: data.description,
+			location: data.location,
+			url: data.url,
+			isAllDay: data.allDay,
+			startDate: moment(data.start).format('YYYY-MM-DD'),
+		};
+
+		if (data.allDay) event['endDate'] = moment(data.end).format('YYYY-MM-DD');
+		else
+			event = {
+				...event,
+				startTime: moment(data.startTime).format('HH:mm'),
+				endTime: moment(data.endTime).format('HH:mm'),
+				duration: moment(data.endTime).diff(moment(data.startTime), 'minute'),
+			};
+
+		if (data.frequencyOption.length) {
+			if (data.frequencyOption[0] !== 'custom') {
+				event = { ...event, freq: data.frequencyOption[0] };
+			} else {
+				event = { ...event, freq: data.customFreqOption[0], interval: data.repeatInterval, byweekday: data.repeatByWeekDay.map((d) => d.toLowerCase()) };
+				if (data.repeatEndOption === 'On') event = { ...event, until: moment(data.On).format('YYYY-MM-DD') };
+				else if (data.repeatEndOption === 'After') event = { ...event, count: data.After };
+			}
+		}
+
 		console.log(data);
 	};
 
@@ -172,7 +192,7 @@ export default function Calendar() {
 													/>
 													<Field.Root>
 														<Field.Label>Description</Field.Label>
-														<Textarea rows={4} placeholder='Description' {...eventForm.register('description')} />
+														<Textarea rows={5} placeholder='Description' {...eventForm.register('description')} />
 													</Field.Root>
 												</Flex>
 												<Flex flex={1} flexDirection='column' gapY={4}>
@@ -260,7 +280,14 @@ export default function Calendar() {
 														<Controller
 															name='frequencyOption'
 															control={eventForm.control}
-															render={({ field }) => <CustomSelect placeholder='Do not repeat' clearable options={frequencyOptions} field={field} />}
+															render={({ field }) => (
+																<CustomSelect
+																	placeholder='Do not repeat'
+																	clearable
+																	options={[...frequencyOptions, { value: 'custom', label: 'Custom' }]}
+																	field={field}
+																/>
+															)}
 														/>
 													</HStack>
 													{eventForm.watch('frequencyOption').includes('custom') && (
@@ -271,16 +298,16 @@ export default function Calendar() {
 																	<Input min={1} step={1} type='number' {...eventForm.register('repeatInterval', { valueAsNumber: true })} />
 																</Field.Root>
 																<Controller
-																	name='intervalOption'
+																	name='customFreqOption'
 																	control={eventForm.control}
-																	render={({ field }) => <CustomSelect options={intervalOptions} field={field} />}
+																	render={({ field }) => <CustomSelect options={frequencyOptions} field={field} />}
 																/>
 															</HStack>
-															{eventForm.watch('intervalOption').includes('weekly') && !eventForm.watch('allDay') && (
+															{eventForm.watch('customFreqOption').includes('weekly') && (
 																<Field.Root>
 																	<Field.Label>Repeat on</Field.Label>
 																	<Controller
-																		name='repeatByDay'
+																		name='repeatByWeekDay'
 																		control={eventForm.control}
 																		render={({ field }) => (
 																			<HStack mt={1}>
@@ -305,6 +332,103 @@ export default function Calendar() {
 																		)}
 																	/>
 																</Field.Root>
+															)}
+															{eventForm.watch('customFreqOption').includes('monthly') && (
+																<Field.Root>
+																	{/* Each date or On the first or last Sunday ... */}
+																	<Field.Label>
+																		<Controller
+																			name='repeatOption'
+																			control={eventForm.control}
+																			render={({ field }) => (
+																				<RadioGroup.Root
+																					onChange={(e) => {
+																						field.onChange(e.target.value);
+																					}}
+																					value={field.value}
+																					variant='solid'
+																					colorPalette='blue'
+																				>
+																					<HStack>
+																						{['Each', 'On the', 'Last day'].map((e) => (
+																							<RadioGroup.Item key={e.toLowerCase()} value={e.toLowerCase()}>
+																								<RadioGroup.ItemHiddenInput />
+																								<RadioGroup.ItemIndicator />
+																								<RadioGroup.ItemText>{e}</RadioGroup.ItemText>
+																							</RadioGroup.Item>
+																						))}
+																					</HStack>
+																				</RadioGroup.Root>
+																			)}
+																		/>
+																	</Field.Label>
+																	{eventForm.watch('repeatOption') === 'each' && (
+																		<Controller
+																			name='repeatByMonthDay'
+																			control={eventForm.control}
+																			render={({ field }) => <CustomSelect multiple={true} options={monthDayOptions} field={field} />}
+																		/>
+																	)}
+																	{(eventForm.watch('repeatOption') === 'on the' || eventForm.watch('customFreqOption').includes('yearly')) && (
+																		<Flex w='100%' gapX={2}>
+																			<Controller
+																				name='weekNumberOption'
+																				control={eventForm.control}
+																				render={({ field }) => <CustomSelect options={weekNumberOptions} field={field} />}
+																			/>
+																			<Controller
+																				control={eventForm.control}
+																				name='repeatByMonthWeekDay'
+																				render={({ field }) => <CustomSelect options={weekDayOptions} field={field} />}
+																			/>
+																		</Flex>
+																	)}
+																</Field.Root>
+															)}
+															{eventForm.watch('customFreqOption').includes('yearly') && (
+																<VStack w='100%'>
+																	{eventForm.watch('repeatOption') === 'each' && (
+																		<Controller
+																			name='repeatByMonth'
+																			control={eventForm.control}
+																			render={({ field }) => <CustomSelect multiple={true} options={monthOptions} field={field} />}
+																		/>
+																	)}
+																	{(eventForm.watch('repeatOption') === 'on the' || eventForm.watch('customFreqOption').includes('yearly')) && (
+																		<Flex w='100%' gapX={2}>
+																			<Controller
+																				control={eventForm.control}
+																				name='onThe'
+																				render={({ field }) => (
+																					<Checkbox.Root
+																						h='40px'
+																						colorPalette='blue'
+																						checked={field.value}
+																						onCheckedChange={({ checked }) => field.onChange(checked)}
+																					>
+																						<Checkbox.HiddenInput />
+																						<Checkbox.Control />
+																						<Checkbox.Label w='20'>On the</Checkbox.Label>
+																					</Checkbox.Root>
+																				)}
+																			/>
+																			{eventForm.watch('onThe') && (
+																				<>
+																					<Controller
+																						name='weekNumberOption'
+																						control={eventForm.control}
+																						render={({ field }) => <CustomSelect options={weekNumberOptions} field={field} />}
+																					/>
+																					<Controller
+																						control={eventForm.control}
+																						name='repeatByMonthWeekDay'
+																						render={({ field }) => <CustomSelect options={weekDayOptions} field={field} />}
+																					/>
+																				</>
+																			)}
+																		</Flex>
+																	)}
+																</VStack>
 															)}
 														</VStack>
 													)}
@@ -364,13 +488,16 @@ export default function Calendar() {
 											</Flex>
 										</Fieldset.Content>
 									</Dialog.Body>
-									<Dialog.Footer>
-										<Button onClick={toggleEventForm.onToggle} rounded='md' variant='subtle' colorPalette='gray'>
-											Close
-										</Button>
-										<Button type='submit' rounded='md' variant='subtle' color='#5A9EF8' bgColor='#BADEFC'>
-											Save
-										</Button>
+									<Dialog.Footer alignItems='center' justifyContent='space-between'>
+										<Text></Text>
+										<HStack>
+											<Button onClick={toggleEventForm.onToggle} rounded='md' variant='subtle' colorPalette='gray'>
+												Close
+											</Button>
+											<Button type='submit' rounded='md' variant='subtle' color='#5A9EF8' bgColor='#BADEFC'>
+												Save
+											</Button>
+										</HStack>
 									</Dialog.Footer>
 								</Fieldset.Root>
 							</chakra.form>
@@ -449,19 +576,23 @@ export default function Calendar() {
 			</Box>
 			<Flex w='100%' flex={1}>
 				<Box my={7} mr={7} p={10} bg='white' shadow='lg' borderRadius='2xl' w='100%'>
-					<FullCalendar
-						height='100%'
-						buttonText={{ today: 'Today' }}
-						titleFormat={{ month: 'long', year: 'numeric' }}
-						headerToolbar={{ end: 'today prev,next' }}
-						dayMaxEvents={3}
-						eventDisplay='auto'
-						initialView='dayGridMonth'
-						plugins={[dayGridPlugin, iCalendarPlugin]}
-						events={[]}
-						eventSources={[events.filter((event) => calendarForm.watch('eventGroupOptions').includes(event.groupId))]}
-						eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: true }}
-					/>
+					{events.isSuccess && (
+						<FullCalendar
+							height='100%'
+							buttonText={{ today: 'Today' }}
+							titleFormat={{ month: 'long', year: 'numeric' }}
+							headerToolbar={{ end: 'today prev,next' }}
+							dayMaxEvents={3}
+							eventDisplay='auto'
+							displayEventTime={true}
+							displayEventEnd={true}
+							initialView='dayGridMonth'
+							plugins={[dayGridPlugin, rrulePlugin, iCalendarPlugin]}
+							events={[]}
+							eventSources={[events.data.filter((event) => calendarForm.watch('eventGroupOptions').includes(event.eventGroupId))]}
+							eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: true }}
+						/>
+					)}
 				</Box>
 			</Flex>
 		</Flex>

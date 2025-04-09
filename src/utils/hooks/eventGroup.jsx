@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { EVENT_GROUP } from '../../libs/QueryKeys';
-import { getList } from '../apis/eventGroup';
+import { getEventGroup } from '../apis/eventGroup';
 
-export function useGetList() {
-	return useQuery({ queryKey: [EVENT_GROUP], queryFn: () => getList() });
+export function useGetEventGroupList() {
+	return useQuery({ queryKey: [EVENT_GROUP], queryFn: () => getEventGroup() });
 }
