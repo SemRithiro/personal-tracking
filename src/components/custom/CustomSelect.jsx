@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Select, createListCollection } from '@chakra-ui/react';
 
-export default function CustomSelect({ field, label, placeholder, options, clearable, children, ...props }) {
+export default function CustomSelect({ field, label, placeholder, options, clearable, additionalfn, children, ...props }) {
 	const [selectOptions, setSelectOptions] = React.useState(createListCollection({ items: [] }));
 
 	React.useEffect(() => {
@@ -10,7 +10,16 @@ export default function CustomSelect({ field, label, placeholder, options, clear
 	}, [options]);
 
 	return (
-		<Select.Root {...props} value={field.value ? field.value : field.id} onValueChange={({ value }) => field.onChange(value)} onInteractOutside={() => field.onBlur()} collection={selectOptions}>
+		<Select.Root
+			{...props}
+			value={field.value ? field.value : field.id}
+			onValueChange={({ value }) => {
+				field.onChange(value);
+				if (additionalfn) additionalfn();
+			}}
+			onInteractOutside={() => field.onBlur()}
+			collection={selectOptions}
+		>
 			<Select.HiddenSelect />
 			{label && <Select.Label>{label}</Select.Label>}
 			<Select.Control>

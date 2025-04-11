@@ -49,6 +49,14 @@ export default function Calendar() {
 	const events = useGetEventList();
 	const eventGroupOptions = useGetEventGroupList();
 
+	const groupForm = useForm({});
+
+	const calendarForm = useForm({
+		defaultValues: {
+			eventGroupOptions: [],
+		},
+	});
+
 	const eventForm = useForm({
 		defaultValues: {
 			title: '',
@@ -65,16 +73,19 @@ export default function Calendar() {
 			frequencyOption: [],
 			repeatInterval: 1,
 
+			// Weekly
 			customFreqOption: ['weekly'],
 			repeatByWeekDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
+
+			// Monthly`
 			repeatOption: 'each',
-
-			repeatByMonthWeekDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
-			weekNumberOption: [weekNumberOptions[0].value],
 			repeatByMonthDay: [parseInt(moment().format('D'))],
+			weekNumberOption: [weekNumberOptions[0].value],
+			repeatByMonthWeekDay: [moment().format('ddd').toUpperCase().substring(0, 2)],
 
+			// Yearly
 			repeatByMonth: [parseInt(moment().format('M'))],
-			onThe: [true],
+			onThe: false,
 
 			repeatEndOption: 'Never',
 			On: new Date(moment()),
@@ -82,13 +93,52 @@ export default function Calendar() {
 		},
 	});
 
-	const groupForm = useForm({});
-
-	const calendarForm = useForm({
-		defaultValues: {
-			eventGroupOptions: [],
-		},
-	});
+	useEffect(() => {
+		if (eventForm.getValues('frequencyOption').length === 0) {
+			eventForm.resetField('repeatInterval');
+			eventForm.resetField('customFreqOption');
+			eventForm.resetField('repeatByWeekDay');
+			eventForm.resetField('repeatOption');
+			eventForm.resetField('repeatByMonthDay');
+			eventForm.resetField('weekNumberOption');
+			eventForm.resetField('weekNumberOption');
+			eventForm.resetField('repeatByMonthWeekDay');
+			eventForm.resetField('repeatByMonth');
+			eventForm.resetField('onThe');
+			eventForm.resetField('repeatEndOption');
+			eventForm.resetField('On');
+			eventForm.resetField('After');
+		} else if (eventForm.getValues('frequencyOption').includes('custom')) {
+			switch (eventForm.getValues('customFreqOption')[0]) {
+				case 'daily':
+					console.log('daily');
+					break;
+				case 'weekly':
+					console.log('weekly');
+					break;
+				case 'monthly':
+					console.log('monthly');
+					break;
+				case 'yearly':
+					console.log('yearly');
+					break;
+				default:
+					break;
+			}
+		} else {
+			eventForm.resetField('repeatInterval');
+			eventForm.resetField('customFreqOption');
+			eventForm.resetField('repeatByWeekDay');
+			eventForm.resetField('repeatOption');
+			eventForm.resetField('repeatByMonthDay');
+			eventForm.resetField('weekNumberOption');
+			eventForm.resetField('weekNumberOption');
+			eventForm.resetField('repeatByMonthWeekDay');
+			eventForm.resetField('repeatByMonth');
+			eventForm.resetField('onThe');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [eventForm.watch(['frequencyOption', 'customFreqOption'])]);
 
 	useEffect(() => {
 		if (eventGroupOptions.data) {
@@ -97,9 +147,9 @@ export default function Calendar() {
 	}, [calendarForm, eventGroupOptions.data]);
 
 	useEffect(() => {
-		eventForm.setValue('repeatByWeekDay', [moment(eventForm.getValues('start')).format('ddd').toUpperCase().substring(0, 2)]);
+		if (eventForm.getValues('start')) eventForm.setValue('repeatByWeekDay', [moment(eventForm.getValues('start')).format('ddd').toUpperCase().substring(0, 2)]);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [eventForm, eventForm.watch('start')]);
+	}, [eventForm, eventForm.watch(['start'])]);
 
 	const handleSubmitEvent = (data) => {
 		let event = {
@@ -121,16 +171,34 @@ export default function Calendar() {
 			};
 
 		if (data.frequencyOption.length) {
-			if (data.frequencyOption[0] !== 'custom') {
+			if (!['custom'].includes(data.frequencyOption[0])) {
 				event = { ...event, freq: data.frequencyOption[0] };
 			} else {
-				event = { ...event, freq: data.customFreqOption[0], interval: data.repeatInterval, byweekday: data.repeatByWeekDay.map((d) => d.toLowerCase()) };
+				switch (data.customFreqOption[0]) {
+					case 'daily':
+						break;
+					case 'weekly':
+						event = { ...event, freq: data.customFreqOption[0], interval: data.repeatInterval, byweekday: data.repeatByWeekDay.map((d) => d.toLowerCase()) };
+						break;
+					case 'monthly':
+						event = { ...event, freq: data.customFreqOption[0] };
+						if (data.repeatOption === 'each') event = { ...event, bymonthday: data.repeatByMonthDay.map((d) => d) };
+						if (data.repeatOption === 'on the') event = { ...event, setpos: data.weekNumberOption[0], byweekday: data.repeatByMonthWeekDay.map((d) => d) };
+						if (data.repeatOption === 'last day') event = { ...event, bymonthday: -1 };
+						break;
+					case 'yearly':
+						event = { ...event, freq: data.customFreqOption[0], bymonth: data.repeatByMonth.map((d) => d), bymonthday: data.repeatByMonthDay.map((d) => d) };
+						if (data.onThe) event = { ...event, setpos: data.weekNumberOption[0], byweekday: data.repeatByMonthWeekDay.map((d) => d) };
+						break;
+					default:
+						break;
+				}
 				if (data.repeatEndOption === 'On') event = { ...event, until: moment(data.On).format('YYYY-MM-DD') };
 				else if (data.repeatEndOption === 'After') event = { ...event, count: data.After };
 			}
 		}
 
-		console.log(data);
+		console.log(data, event);
 	};
 
 	const handleSubmitGroup = (data) => {
